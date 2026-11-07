@@ -343,20 +343,20 @@ def render_qg_display_studio(esp_endpoint: str = "http://192.168.1.12"):
             if "video_quality_mode" not in st.session_state:
                 st.session_state["video_quality_mode"] = "Auto (1080p/720p Adaptive)"
             if "video_size_choice" not in st.session_state:
-                st.session_state["video_size_choice"] = "3X Cinema Display (720px)"
+                st.session_state["video_size_choice"] = "2X Widescreen (480px)"
 
             video_state = st.session_state["selected_video_state"]
             if video_state is None:
                 video_state = 0 if phys_state == 0 else 1
 
-            # Determine player height (default is 720px = 3 times larger than previous 240px)
-            chosen_size = st.session_state.get("video_size_choice", "3X Cinema Display (720px)")
-            if "860px" in chosen_size:
-                player_height = 860
-            elif "480px" in chosen_size:
-                player_height = 480
+            # Determine player height (default is 2X length = 480px with 2X expanded width)
+            chosen_size = st.session_state.get("video_size_choice", "2X Widescreen (480px)")
+            if "720px" in chosen_size or "3X" in chosen_size:
+                player_height = 720
+            elif "360px" in chosen_size:
+                player_height = 360
             else:
-                player_height = 720  # 3X display size
+                player_height = 480  # 2X length
 
             # Base Google Drive Preview Video URLs
             base_drive_url = (
@@ -385,18 +385,18 @@ def render_qg_display_studio(esp_endpoint: str = "http://192.168.1.12"):
                 filter_style = ""
 
             st.markdown(f"""
-            <div style="border: 1px solid #14b8a6; border-radius: 18px; overflow: hidden; background: #060d13; margin: 14px 0 16px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);">
-                <div style="background: linear-gradient(135deg, #091e23 0%, #0d2232 100%); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #133946;">
-                    <div style="font-weight: 800; color: #5eead4; font-size: 14px; display: flex; align-items: center; gap: 10px;">
-                        <span>🎬 Quantum State Video Theater (3X Display)</span>
-                        <span style="background: rgba(13, 148, 136, 0.25); color: #2dd4bf; border: 1px solid #0d9488; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">
+            <div style="border: 1px solid #0d9488; border-radius: 16px; overflow: hidden; background: #0f172a; margin: 14px 0 16px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); width: 100%;">
+                <div style="background: linear-gradient(135deg, #0f766e 0%, #0369a1 100%); padding: 10px 18px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="font-weight: 800; color: #ffffff; font-size: 14px; display: flex; align-items: center; gap: 10px;">
+                        <span>🎬 Quantum State Video Theater (2X Display)</span>
+                        <span style="background: rgba(255, 255, 255, 0.2); color: #ffffff; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">
                             {quality_badge}
                         </span>
-                        <span style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid #16a34a; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">
+                        <span style="background: rgba(255, 255, 255, 0.2); color: #ffffff; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">
                             {'⚡ AUTOPLAY: ON' if is_autoplay else '⏸️ AUTOPLAY: OFF'}
                         </span>
                     </div>
-                    <span style="background: rgba(45, 212, 191, 0.2); color: #5eead4; border: 1px solid #14b8a6; padding: 4px 14px; border-radius: 999px; font-size: 13px; font-weight: 900; letter-spacing: 0.5px;">
+                    <span style="background: #ffffff; color: #0f766e; padding: 3px 12px; border-radius: 999px; font-size: 13px; font-weight: 900;">
                         STATE: |{video_state}⟩
                     </span>
                 </div>
@@ -443,13 +443,13 @@ def render_qg_display_studio(esp_endpoint: str = "http://192.168.1.12"):
                 new_size = st.selectbox(
                     "Display Size Scaling",
                     [
+                        "2X Widescreen (480px)",
                         "3X Cinema Display (720px)",
-                        "Expanded Theater (860px)",
-                        "Standard (480px)",
+                        "Standard (360px)",
                     ],
                     index=0,
                     key="size_selector_box",
-                    help="3 times larger display height for immersive viewing."
+                    help="2X length (480px) with 2X expanded width."
                 )
                 if new_size != st.session_state.get("video_size_choice"):
                     st.session_state["video_size_choice"] = new_size
