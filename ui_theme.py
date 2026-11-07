@@ -10,17 +10,13 @@ import streamlit as st
 
 _THEME_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
-
 :root {
     --qkd-canvas: #090d16;
     --qkd-surface: #0f172a;
     --qkd-surface-elevated: #1e293b;
-    --qkd-surface-card: #131c2e;
     --qkd-ink: #f8fafc;
     --qkd-muted: #94a3b8;
     --qkd-border: rgba(255, 255, 255, 0.08);
-    --qkd-border-hover: rgba(99, 102, 241, 0.4);
     --qkd-border-glow: rgba(99, 102, 241, 0.3);
     --qkd-accent: #6366f1;
     --qkd-accent-hover: #4f46e5;
@@ -32,21 +28,16 @@ _THEME_CSS = """
 
 /* App Background & Typography */
 [data-testid="stAppViewContainer"] {
-    background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.12), rgba(9, 13, 22, 1)) !important;
-    background-color: var(--qkd-canvas) !important;
+    background: radial-gradient(circle at 50% 0%, #111827 0%, #090d16 100%) !important;
     color: var(--qkd-ink);
 }
 [data-testid="stHeader"] {
-    background: rgba(9, 13, 22, 0.8) !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(9, 13, 22, 0.75) !important;
+    backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--qkd-border);
 }
 
-/* Material symbols compatibility for test regression and crisp icon rendering */
-[data-testid="stIconMaterial"] {
-    font-family: "Material Symbols Rounded" !important;
-}
+/* Material symbols compatibility for test regression */
 [data-testid="stExpander"] [data-testid="stIconMaterial"] {
     font-family: "Material Symbols Rounded" !important;
 }
@@ -59,10 +50,22 @@ button[data-testid="stBaseButton-headerNoPadding"] [data-testid="stIconMaterial"
     line-height: 0 !important;
 }
 
-/* Prevent icon ligature leak on sidebar controls */
-button[data-testid="stSidebarCollapseButton"] span[data-testid="stIconMaterial"],
-div[data-testid="collapsedControl"] span[data-testid="stIconMaterial"] {
-    font-family: "Material Symbols Rounded" !important;
+/* Prevent any sidebar collapse ligature text leaking */
+[data-testid="collapsedControl"] button span,
+button[data-testid="stSidebarCollapseButton"] span,
+button[data-testid="stBaseButton-headerNoPadding"] span {
+    font-size: 0 !important;
+    line-height: 0 !important;
+    color: transparent !important;
+    display: none !important;
+}
+[data-testid="collapsedControl"] button::before,
+button[data-testid="stSidebarCollapseButton"]::before,
+button[data-testid="stBaseButton-headerNoPadding"]::before {
+    content: "☰" !important;
+    font-size: 16px !important;
+    line-height: 1 !important;
+    color: #94a3b8 !important;
 }
 
 [data-testid="stMainBlockContainer"] {
@@ -71,8 +74,8 @@ div[data-testid="collapsedControl"] span[data-testid="stIconMaterial"] {
     padding-bottom: 4rem;
 }
 html, body, [class*="st-"], [data-testid="stMarkdownContainer"] {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    letter-spacing: -0.012em;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    letter-spacing: -0.011em;
 }
 code, pre, .mono {
     font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
@@ -190,7 +193,7 @@ code, pre, .mono {
     letter-spacing: 0.08em;
 }
 
-/* Containers */
+/* Cards & Containers */
 [data-testid="stVerticalBlockBorderWrapper"] {
     border: 1px solid var(--qkd-border) !important;
     border-radius: 12px !important;
@@ -220,49 +223,13 @@ code, pre, .mono {
 [data-testid="stMetricLabel"] { color: #94a3b8; font-size: 0.8rem; font-weight: 550; }
 [data-testid="stMetricValue"] { color: #f8fafc; font-weight: 700; font-size: 1.55rem; font-family: "JetBrains Mono", monospace; }
 
-/* Alerts - High Contrast Enterprise Style */
+/* Alerts */
 [data-testid="stAlert"] {
-    border-radius: 10px !important;
-    border-width: 1px !important;
-    border-style: solid !important;
+    border-radius: 10px;
+    border-width: 1px;
     background: #0f172a !important;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
     animation: fadeIn 250ms ease-out;
-}
-[data-testid="stAlert"]:has([data-testid="stNotificationContentWarning"]) {
-    border-color: rgba(245, 158, 11, 0.35) !important;
-    border-left: 4px solid #f59e0b !important;
-    background: rgba(245, 158, 11, 0.06) !important;
-}
-[data-testid="stAlert"]:has([data-testid="stNotificationContentInfo"]) {
-    border-color: rgba(99, 102, 241, 0.35) !important;
-    border-left: 4px solid #6366f1 !important;
-    background: rgba(99, 102, 241, 0.06) !important;
-}
-[data-testid="stAlert"]:has([data-testid="stNotificationContentSuccess"]) {
-    border-color: rgba(16, 185, 129, 0.35) !important;
-    border-left: 4px solid #10b981 !important;
-    background: rgba(16, 185, 129, 0.06) !important;
-}
-[data-testid="stAlert"]:has([data-testid="stNotificationContentError"]) {
-    border-color: rgba(239, 68, 68, 0.35) !important;
-    border-left: 4px solid #ef4444 !important;
-    background: rgba(239, 68, 68, 0.06) !important;
-}
-
-/* Expanders */
-[data-testid="stExpander"] {
-    border: 1px solid var(--qkd-border) !important;
-    border-radius: 10px !important;
-    background: var(--qkd-surface) !important;
-    margin-bottom: 0.75rem;
-}
-[data-testid="stExpander"] summary {
-    font-weight: 600;
-    color: #e2e8f0 !important;
-}
-[data-testid="stExpander"] summary:hover {
-    color: #6366f1 !important;
 }
 
 /* Tables & DataFrames */
@@ -281,7 +248,6 @@ code, pre, .mono {
     background: #0b0f19 !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     color: #f8fafc !important;
-    font-family: inherit;
     transition: all 140ms ease;
 }
 [data-testid="stTextInput"] input:focus,

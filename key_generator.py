@@ -42,105 +42,68 @@ mode = st.sidebar.radio(
 )
 st.sidebar.info("💡 **Enterprise Mode Switcher:** Select a dedicated workspace above or use the Command Center hub cards.")
 
+def _select_kg_mode(target_mode: str) -> None:
+    st.session_state["key_generator_mode"] = target_mode
+
 if mode == HOME_HUB_LABEL and not is_test_env:
     from ui_theme import render_portal_hero
     render_portal_hero(
-        "Quantum Key Generator & Cryptography Studio",
-        "Commercial-grade quantum key distribution, CCSDS SDLS provisioning, and interactive state-vector laboratory for satellite communications.",
-        "QUANTUM CRYPTO // WORKSPACE HUB"
+        "Quantum Key Generator Studio",
+        "Generate quantum cryptographic keys and provision them to ESP32 hardware with one click.",
+        "QUANTUM CRYPTO // WORKSPACE"
     )
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Cryptographic Standard", "CCSDS 355.0-B-2", "AES-256-GCM")
-    m2.metric("Quantum Simulation", "Qiskit Aer", "BB84 Sifted")
-    m3.metric("Hardware Entropy", "ESP32 TRNG", "RF Reseeded")
-    m4.metric("Active Workspaces", "4 Dedicated", "Online & Ready")
-
-    st.markdown("### ◈ Mission Workspaces")
-    st.caption("Select a specialized full-screen workspace to begin operations:")
+    st.markdown("### 🚀 Primary Workspaces")
+    st.caption("Choose an action below to get started:")
 
     col_w1, col_w2 = st.columns(2)
     with col_w1:
         st.markdown(
             f"""<div class="module-card-box">
                 <div>
-                    <span class="module-card-badge active-badge">● PRODUCTION KEY PROVISIONER</span>
-                    <h3 class="module-card-title">CCSDS AOS Q-Key Provisioner</h3>
-                    <p class="module-card-desc">Generate verified 256-bit or 128-bit quantum keys from simulated QKD, create single-use pairing passwords, encode length-prefixed messages, and provision volatile ESP32 RAM.</p>
+                    <span class="module-card-badge active-badge">● RECOMMENDED</span>
+                    <h3 class="module-card-title">🔑 Generate & Provision Q-Key</h3>
+                    <p class="module-card-desc">Generate a verified 128-bit or 256-bit quantum key, create a single-use pairing password, and push volatile message slots to ESP32 RAM.</p>
                     <ul class="module-card-features">
-                        <li>Exact 256-bit / 128-bit AES-GCM Q-Key creation</li>
-                        <li>Single-use OS-CSPRNG 32-character pairing password</li>
-                        <li>5 volatile hardware message slots provisioning</li>
+                        <li>1-Click Q-Key & Password generation</li>
+                        <li>5-slot volatile hardware provisioning</li>
+                        <li>Direct sync with Communication Base Station</li>
                     </ul>
                 </div>
             </div>""",
             unsafe_allow_html=True,
         )
-        if st.button("Launch Q-Key Provisioner Workspace →", type="primary", key="btn_open_aos_hub", use_container_width=True):
-            st.session_state["key_generator_mode"] = AOS_KEY_MODE_LABEL
-            st.rerun()
+        st.button("Launch Q-Key Provisioner →", type="primary", key="btn_open_aos_hub", on_click=_select_kg_mode, args=(AOS_KEY_MODE_LABEL,), use_container_width=True)
 
     with col_w2:
         st.markdown(
             f"""<div class="module-card-box">
                 <div>
-                    <span class="module-card-badge">● HARDWARE STUDIO</span>
-                    <h3 class="module-card-title">Quantum Gates & Live Qubit Display</h3>
-                    <p class="module-card-desc">Interactive quantum circuit designer with Hadamard, Pauli-X, Y, Z, and CNOT gates. Real-time Bloch sphere, amplitude probabilities, and ESP32 physical dual-LED sync.</p>
+                    <span class="module-card-badge">● HARDWARE LAB</span>
+                    <h3 class="module-card-title">⚛️ Live Quantum Gate Studio</h3>
+                    <p class="module-card-desc">Interactive circuit builder with Hadamard, Pauli-X, and CNOT gates. Real-time Bloch sphere, qubit amplitudes, and ESP32 physical dual-LED sync.</p>
                     <ul class="module-card-features">
-                        <li>Real-time classical state-vector simulation</li>
-                        <li>Physical ESP32 dual-LED hardware synchronization</li>
-                        <li>Single-qubit and two-qubit interactive gate pipeline</li>
+                        <li>Real-time statevector probabilities</li>
+                        <li>Physical ESP32 dual-LED synchronization</li>
+                        <li>Single-qubit and two-qubit interactive gates</li>
                     </ul>
                 </div>
             </div>""",
             unsafe_allow_html=True,
         )
-        if st.button("Launch Quantum Gate Studio →", key="btn_open_qg_hub", use_container_width=True):
-            st.session_state["key_generator_mode"] = QG_DISPLAY_MODE_LABEL
-            st.rerun()
+        st.button("Launch Quantum Studio →", key="btn_open_qg_hub", on_click=_select_kg_mode, args=(QG_DISPLAY_MODE_LABEL,), use_container_width=True)
 
-    st.markdown("<div style='height: 0.8rem;'></div>", unsafe_allow_html=True)
-    col_w3, col_w4 = st.columns(2)
-    with col_w3:
-        st.markdown(
-            f"""<div class="module-card-box">
-                <div>
-                    <span class="module-card-badge">● QKD SIMULATOR</span>
-                    <h3 class="module-card-title">Qiskit Aer BB84 Simulator</h3>
-                    <p class="module-card-desc">Educational multi-round quantum key distribution protocol running on Qiskit Aer. Configure Alice/Bob preparation bases, simulate transmission, and inspect sifting.</p>
-                    <ul class="module-card-features">
-                        <li>32 to 256 round quantum circuit simulation</li>
-                        <li>Rectilinear vs Diagonal measurement basis sifting</li>
-                        <li>Hardware Key 4 (PB4) physical trigger polling</li>
-                    </ul>
-                </div>
-            </div>""",
-            unsafe_allow_html=True,
-        )
-        if st.button("Launch BB84 Simulator →", key="btn_open_bb84_hub", use_container_width=True):
-            st.session_state["key_generator_mode"] = "BB84 simulator"
-            st.rerun()
-
-    with col_w4:
-        st.markdown(
-            f"""<div class="module-card-box">
-                <div>
-                    <span class="module-card-badge">● ENTROPY ENGINE</span>
-                    <h3 class="module-card-title">OS CSPRNG Cryptographic Engine</h3>
-                    <p class="module-card-desc">High-entropy operating system cryptographic random number generator for baseline comparison against quantum entropy and TRNG sources.</p>
-                    <ul class="module-card-features">
-                        <li>OS kernel cryptographically secure random bytes</li>
-                        <li>Deterministic vs non-deterministic entropy analysis</li>
-                        <li>Immediate standalone offline capability</li>
-                    </ul>
-                </div>
-            </div>""",
-            unsafe_allow_html=True,
-        )
-        if st.button("Launch OS CSPRNG Engine →", key="btn_open_csprng_hub", use_container_width=True):
-            st.session_state["key_generator_mode"] = OS_CSPRNG_MODE_LABEL
-            st.rerun()
+    with st.expander("🔬 Advanced Teaching & Entropy Labs (BB84 QKD & OS CSPRNG)", expanded=False):
+        st.caption("Academic simulators for protocol demonstration and baseline comparison:")
+        lab_col1, lab_col2 = st.columns(2)
+        with lab_col1:
+            st.markdown("#### ⚛️ Qiskit Aer BB84 Simulator")
+            st.write("Simulate Alice & Bob photon polarization, basis matching, and error sifting.")
+            st.button("Open BB84 Simulator →", key="btn_open_bb84_hub", on_click=_select_kg_mode, args=("BB84 simulator",), use_container_width=True)
+        with lab_col2:
+            st.markdown("#### 🔐 OS CSPRNG Cryptographic Engine")
+            st.write("Generate kernel pseudo-random bytes for baseline cryptographic comparison.")
+            st.button("Open OS CSPRNG Engine →", key="btn_open_csprng_hub", on_click=_select_kg_mode, args=(OS_CSPRNG_MODE_LABEL,), use_container_width=True)
 
     st.stop()
 
@@ -159,9 +122,7 @@ if not is_test_env:
             unsafe_allow_html=True,
         )
     with nav_col2:
-        if st.button("← Back to Hub", key="btn_back_to_hub_kg", use_container_width=True):
-            st.session_state["key_generator_mode"] = HOME_HUB_LABEL
-            st.rerun()
+        st.button("← Back to Hub", key="btn_back_to_hub_kg", on_click=_select_kg_mode, args=(HOME_HUB_LABEL,), use_container_width=True)
 
 if mode == "BB84 simulator":
     st.title("Key Generator")
