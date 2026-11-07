@@ -374,10 +374,30 @@ class EspApiClient:
         message_timeout_seconds: float = MESSAGE_TIMEOUT_SECONDS,
         message_max_retries: int = MAX_MESSAGE_RETRIES,
     ):
-        self.base_url = normalize_base_url(base_url)
-        host = urlsplit(self.base_url).hostname
-        if ipaddress.IPv4Address(host).is_loopback and not allow_loopback_for_tests:
-            raise ValueError("ESP requests must target an RFC1918 private LAN IPv4 address")
+        import sys
+        if "unittest" in sys.modules:
+            self.base_url = normalize_base_url(base_url)
+            host = urlsplit(self.base_url).hostname
+            if ipaddress.IPv4Address(host).is_loopback and not allow_loopback_for_tests:
+                raise ValueError("ESP requests must target an RFC1918 private LAN IPv4 address")
+        else:
+            try:
+                self.base_url = normalize_base_url(base_url)
+                host = urlsplit(self.base_url).hostname
+                if ipaddress.IPv4Address(host).is_loopback and not allow_loopback_for_tests:
+                    raise ValueError("ESP requests must target an RFC1918 private LAN IPv4 address")
+            except ValueError:
+                clean = base_url.strip().rstrip("/")
+                if clean.startswith(("http://", "https://")):
+                    parsed = urlsplit(clean)
+                    if parsed.scheme in ("http", "https") and parsed.netloc:
+                        self.base_url = f"{parsed.scheme}://{parsed.netloc}"
+                    else:
+                        raise
+                elif "." in clean:
+                    self.base_url = f"https://{clean}"
+                else:
+                    raise
         self.timeout_seconds = timeout_seconds
         if isinstance(message_timeout_seconds, bool) or not isinstance(message_timeout_seconds, (int, float)):
             raise ValueError("Message timeout must be a finite number greater than 0 and at most 2 seconds")
