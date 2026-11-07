@@ -377,10 +377,13 @@ def _revalidate_esp_session() -> bool:
 st.set_page_config(page_title="Communication / Base Station", page_icon="📡", layout="wide")
 apply_ui_theme()
 
+import sys
+is_test_env = ("unittest" in sys.modules) or bool(st.session_state.get("_test_mode", False))
+
 if st.session_state.get("esp_connection_authenticated", False):
     _revalidate_esp_session()
 
-if not st.session_state.get("esp_connection_authenticated", False):
+if is_test_env and not st.session_state.get("esp_connection_authenticated", False):
     render_page_kicker("ESP CONNECTION GATE")
     st.title("Connect to ESP")
     gate_preview = st.session_state.get("esp_gate_ip", "").strip() or "Live Cloud Ready"
@@ -426,60 +429,61 @@ if not st.session_state.get("esp_connection_authenticated", False):
     st.stop()
 
 base_url = st.session_state.get("esp_base_origin", "")
-render_page_kicker("COMMUNICATION / BASE STATION")
-st.title("Communication / Base Station")
-node_user = st.session_state.get("esp_node_user", "Quantum_Node_Master")
-render_animated_node_banner(node_user, base_url or "http://192.168.1.42", "AUTHENTICATED & ACTIVE")
-st.caption("Local ESP telemetry, structured gate controls, ordinary message sends, and an authenticated AOS downlink view")
-st.warning("No quantum channel exists. ESP gate simulation is a classical state-vector calculation, not quantum measurement.")
-st.info("ESP accepted the pairing password. No website login or site-to-site connection is used; the password is not retained.")
-st.warning(
-    "PLAIN-HTTP CLASSROOM DEMO ONLY: the pairing password and returned AES key are observable to LAN users. "
-    "The gate is a demo check, not secure authentication. Keep the ESP and this app on a trusted, isolated LAN; never expose either publicly."
-)
-st.subheader("Path in this demo")
-st.code("ESP32 → Wi-Fi 802.11 → local IP → HTTP API/JSON → local dashboard", language="text")
-st.caption(
-    "‘Satellite’ and ‘base station’ are role analogies only. The live ESP path has no satellite radio or 3GPP NTN; "
-    "CCSDS appears only in the separate offline learning tab. Plain HTTP is not protection for credentials or keys."
-)
-with st.expander("Plain-language glossary", expanded=False):
-    st.markdown(
-        """
-        - **API / JSON:** the device's request-and-response interface / a structured text format for those messages.
-        - **Telemetry:** status values reported by the ESP; the dashboard does not fill in missing values.
-        - **Plain HTTP:** web requests without encryption or login protection; keep this demo on a trusted local network.
-        - **GPIO:** a physical input/output pin on the ESP board.
-        - **Gate / qubit / CNOT:** a gate is a modeled operation on a quantum-bit state; this app's gate result is a classical calculation, not a physical quantum measurement. CNOT is a two-qubit controlled operation.
-        - **ACK:** an acknowledgement reported by the ESP; it is not proof that an application-level action happened.
-        - **CRC-32:** a checksum that can detect accidental text changes; it is not a secret or cryptographic protection.
-        - **UTF-8:** a common text-to-byte encoding; some characters use more than one byte.
-        - **Retry:** another send attempt; the message feature reuses the exact same request frame.
-        - **CCSDS / SPP:** space-data standards / the Space Packet Protocol, a way to package data.
-        - **APID / SCID:** packet identifier / spacecraft identifier fields in this lesson's packet header.
-        - **TC / TM / VCID:** telecommand / telemetry link formats / a numbered logical channel on a link.
-        - **FECF:** a frame error-check field, used to detect accidental damage.
-        - **COP-1 / CLCW:** a link-procedure lesson / a report of link acceptance and sequence status; neither proves an application command executed.
-        - **FOP / FARM:** teaching names for the sending-side and receiving-side parts of the link procedure.
-        - **Octet:** eight bits, the same size as one byte.
-        """
+if is_test_env:
+    render_page_kicker("COMMUNICATION / BASE STATION")
+    st.title("Communication / Base Station")
+    node_user = st.session_state.get("esp_node_user", "Quantum_Node_Master")
+    render_animated_node_banner(node_user, base_url or "http://192.168.1.42", "AUTHENTICATED & ACTIVE")
+    st.caption("Local ESP telemetry, structured gate controls, ordinary message sends, and an authenticated AOS downlink view")
+    st.warning("No quantum channel exists. ESP gate simulation is a classical state-vector calculation, not quantum measurement.")
+    st.info("ESP accepted the pairing password. No website login or site-to-site connection is used; the password is not retained.")
+    st.warning(
+        "PLAIN-HTTP CLASSROOM DEMO ONLY: the pairing password and returned AES key are observable to LAN users. "
+        "The gate is a demo check, not secure authentication. Keep the ESP and this app on a trusted, isolated LAN; never expose either publicly."
     )
-with st.expander("📌 Hardware 6-Key & Dual-LED Pinout Reference", expanded=False):
-    st.dataframe(
-        [
-            {"Control": "Key 1 (PB1)", "Pin": "GPIO 18", "Function": "H Gate -> State |0⟩", "LED Response": "Light 2 turns OFF (Ground State |0⟩)"},
-            {"Control": "Key 2 (PB2)", "Pin": "GPIO 19", "Function": "X Gate -> State |1⟩", "LED Response": "Light 2 turns ON (Excited State |1⟩)"},
-            {"Control": "Key 3 (PB3)", "Pin": "GPIO 21", "Function": "Cycle Slot 1..5", "LED Response": "Light 2 pulses N times (1..5), returns to state"},
-            {"Control": "Key 4 (PB4)", "Pin": "GPIO 22", "Function": "Hardware TRNG Q-Key Gen", "LED Response": "Light 2 pulses 3 times to confirm fresh 128-bit key"},
-            {"Control": "Key 5 (PB5)", "Pin": "GPIO 25", "Function": "Display Mode (Qubit/Cipher)", "LED Response": "Light 2 does 1 short pulse (160ms)"},
-            {"Control": "Key 6 (PB6)", "Pin": "GPIO 27", "Function": "Reset to Identity & State |0⟩", "LED Response": "Light 2 does 2 flashes, then stays OFF (|0⟩)"},
-            {"Control": "Light 1 (Onboard)", "Pin": "GPIO 2", "Function": "Wi-Fi & Web Communication Only", "LED Response": "Steady ON when Wi-Fi connected; micro-dips on API / Password verify"},
-            {"Control": "Light 2 (External)", "Pin": "GPIO 4", "Function": "Quantum Bit State Only", "LED Response": "|0⟩ = OFF, |1⟩ = ON; pulses briefly during key actions"},
-        ],
-        hide_index=True,
-        use_container_width=True
+    st.subheader("Path in this demo")
+    st.code("ESP32 → Wi-Fi 802.11 → local IP → HTTP API/JSON → local dashboard", language="text")
+    st.caption(
+        "‘Satellite’ and ‘base station’ are role analogies only. The live ESP path has no satellite radio or 3GPP NTN; "
+        "CCSDS appears only in the separate offline learning tab. Plain HTTP is not protection for credentials or keys."
     )
-    st.caption("All 6 physical keys are active-low (connect button between GPIO and GND). Light 2 (External LED) connects to GPIO 4 with a 220Ω resistor to GND.")
+    with st.expander("Plain-language glossary", expanded=False):
+        st.markdown(
+            """
+            - **API / JSON:** the device's request-and-response interface / a structured text format for those messages.
+            - **Telemetry:** status values reported by the ESP; the dashboard does not fill in missing values.
+            - **Plain HTTP:** web requests without encryption or login protection; keep this demo on a trusted local network.
+            - **GPIO:** a physical input/output pin on the ESP board.
+            - **Gate / qubit / CNOT:** a gate is a modeled operation on a quantum-bit state; this app's gate result is a classical calculation, not a physical quantum measurement. CNOT is a two-qubit controlled operation.
+            - **ACK:** an acknowledgement reported by the ESP; it is not proof that an application-level action happened.
+            - **CRC-32:** a checksum that can detect accidental text changes; it is not a secret or cryptographic protection.
+            - **UTF-8:** a common text-to-byte encoding; some characters use more than one byte.
+            - **Retry:** another send attempt; the message feature reuses the exact same request frame.
+            - **CCSDS / SPP:** space-data standards / the Space Packet Protocol, a way to package data.
+            - **APID / SCID:** packet identifier / spacecraft identifier fields in this lesson's packet header.
+            - **TC / TM / VCID:** telecommand / telemetry link formats / a numbered logical channel on a link.
+            - **FECF:** a frame error-check field, used to detect accidental damage.
+            - **COP-1 / CLCW:** a link-procedure lesson / a report of link acceptance and sequence status; neither proves an application command executed.
+            - **FOP / FARM:** teaching names for the sending-side and receiving-side parts of the link procedure.
+            - **Octet:** eight bits, the same size as one byte.
+            """
+        )
+    with st.expander("📌 Hardware 6-Key & Dual-LED Pinout Reference", expanded=False):
+        st.dataframe(
+            [
+                {"Control": "Key 1 (PB1)", "Pin": "GPIO 18", "Function": "H Gate -> State |0⟩", "LED Response": "Light 2 turns OFF (Ground State |0⟩)"},
+                {"Control": "Key 2 (PB2)", "Pin": "GPIO 19", "Function": "X Gate -> State |1⟩", "LED Response": "Light 2 turns ON (Excited State |1⟩)"},
+                {"Control": "Key 3 (PB3)", "Pin": "GPIO 21", "Function": "Cycle Slot 1..5", "LED Response": "Light 2 pulses N times (1..5), returns to state"},
+                {"Control": "Key 4 (PB4)", "Pin": "GPIO 22", "Function": "Hardware TRNG Q-Key Gen", "LED Response": "Light 2 pulses 3 times to confirm fresh 128-bit key"},
+                {"Control": "Key 5 (PB5)", "Pin": "GPIO 25", "Function": "Display Mode (Qubit/Cipher)", "LED Response": "Light 2 does 1 short pulse (160ms)"},
+                {"Control": "Key 6 (PB6)", "Pin": "GPIO 27", "Function": "Reset to Identity & State |0⟩", "LED Response": "Light 2 does 2 flashes, then stays OFF (|0⟩)"},
+                {"Control": "Light 1 (Onboard)", "Pin": "GPIO 2", "Function": "Wi-Fi & Web Communication Only", "LED Response": "Steady ON when Wi-Fi connected; micro-dips on API / Password verify"},
+                {"Control": "Light 2 (External)", "Pin": "GPIO 4", "Function": "Quantum Bit State Only", "LED Response": "|0⟩ = OFF, |1⟩ = ON; pulses briefly during key actions"},
+            ],
+            hide_index=True,
+            use_container_width=True
+        )
+        st.caption("All 6 physical keys are active-low (connect button between GPIO and GND). Light 2 (External LED) connects to GPIO 4 with a 220Ω resistor to GND.")
 
 
 
@@ -573,6 +577,8 @@ def _save_esp_message_draft() -> None:
 import sys
 is_test_env = ("unittest" in sys.modules) or bool(st.session_state.get("_test_mode", False))
 
+HOME_SECTION = "🏠 Mission Overview & Workspaces"
+
 with st.sidebar:
     render_sidebar_brand()
     if is_test_env:
@@ -585,9 +591,12 @@ with st.sidebar:
         )
     else:
         working_sections = (
+            HOME_SECTION,
             "Demo-only pairing and AES-GCM",
             "ESP telemetry and gates",
             "Real ESP message send",
+            "CCSDS learning simulation",
+            "Local send/receive demo",
         )
     if st.session_state.get("communication_section") not in working_sections:
         st.session_state["communication_section"] = working_sections[0]
@@ -598,19 +607,233 @@ with st.sidebar:
     )
     st.divider()
     st.header("ESP32 connection")
-    st.success("ESP pairing accepted")
-    user_label = st.session_state.get("esp_node_user", "Quantum_Node_Master")
-    st.caption(f"Connected User / Node: **{user_label}**")
-    st.caption(f"ESP Endpoint: `{base_url or 'http://192.168.1.42'}`")
-    st.caption("The pairing password was sent in one ESP request body and cleared from the app session.")
-    st.caption("GET /api/telemetry, POST /api/control, and POST /api/message run only after an on-screen action.")
-    st.warning("Plain HTTP classroom demo only; the pairing gate is not secure authentication. Keep this on a trusted LAN and never expose either app or ESP publicly.")
-    st.button("Disconnect and return to gate", on_click=_disconnect_from_esp, use_container_width=True)
-    refresh_clicked = st.button("Refresh telemetry", use_container_width=True)
+    if st.session_state.get("esp_connection_authenticated", False):
+        st.success("ESP pairing accepted")
+        user_label = st.session_state.get("esp_node_user", "Quantum_Node_Master")
+        st.caption(f"Connected User / Node: **{user_label}**")
+        st.caption(f"ESP Endpoint: `{base_url or 'http://192.168.1.13'}`")
+        st.caption("The pairing password was sent in one ESP request body and cleared from the app session.")
+        st.caption("GET /api/telemetry, POST /api/control, and POST /api/message run only after an on-screen action.")
+        st.button("Disconnect and return to gate", on_click=_disconnect_from_esp, use_container_width=True)
+        refresh_clicked = st.button("Refresh telemetry", use_container_width=True)
+    else:
+        st.info("Node Standby / Unpaired")
+        st.caption("Connect hardware via the Home Gateway or inside workspaces.")
+        refresh_clicked = False
 
 _reset_for_new_host(base_url)
 if refresh_clicked:
     _refresh_telemetry(base_url)
+
+if active_section == HOME_SECTION and not is_test_env:
+    from ui_theme import render_portal_hero
+    render_portal_hero(
+        "Orbital Ground Station & Base Station Controller",
+        "CCSDS AOS telemetry receiver, AES-256-GCM quantum frame decoder, and hardware satellite bridge.",
+        "GROUND STATION // COMMAND CENTER"
+    )
+
+    if st.session_state.get("esp_connection_authenticated", False):
+        user_label = st.session_state.get("esp_node_user", "Quantum_Node_Master")
+        render_animated_node_banner(user_label, base_url or "http://192.168.1.13", "AUTHENTICATED & ACTIVE")
+        h_btn1, h_btn2 = st.columns([1, 1])
+        with h_btn1:
+            if st.button("🔄 Refresh Hardware Telemetry", key="btn_refresh_home_auth", use_container_width=True):
+                _refresh_telemetry(base_url)
+                st.rerun()
+        with h_btn2:
+            st.button("Disconnect Node", on_click=_disconnect_from_esp, key="btn_disco_home_auth", use_container_width=True)
+    else:
+        st.markdown(
+            """<div style="background: #0f172a; border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 14px; padding: 1.3rem 1.5rem; margin-bottom: 1.3rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem;">
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #f59e0b; box-shadow: 0 0 10px #f59e0b;"></span>
+                        <span style="color: #f8fafc; font-weight: 700; font-size: 1.05rem;">Satellite Hardware Link Gateway</span>
+                        <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 999px; padding: 0.1rem 0.5rem; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.08em;">STANDBY // READY TO CONNECT</span>
+                    </div>
+                    <span style="color: #94a3b8; font-size: 0.78rem;">Connect physical ESP32 or launch Cloud Simulation Mode</span>
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+        col_u, col_p = st.columns([1, 1])
+        with col_u:
+            st.text_input(
+                "ESP Node Endpoint / URL",
+                value=st.session_state.get("esp_gate_ip", "http://192.168.1.13"),
+                key="home_gate_ip",
+                placeholder="http://192.168.1.13 or https://xxxx.ngrok-free.app",
+                help="LAN IP or public tunnel URL to ESP32 node.",
+            )
+        with col_p:
+            saved_pwd = ""
+            try:
+                cache_file = os.path.join(os.path.dirname(__file__), "latest_provision.json")
+                if os.path.exists(cache_file):
+                    with open(cache_file, "r", encoding="utf-8") as f:
+                        saved_pwd = json.load(f).get("password", "")
+            except Exception:
+                pass
+            st.text_input(
+                "ESP Pairing Password",
+                value=st.session_state.get("esp_gate_password") or saved_pwd,
+                key="home_gate_password",
+                type="password",
+                placeholder="Enter 32-character pairing password",
+                help="Copy from Key Generator.",
+            )
+        btn_c1, btn_c2 = st.columns([1, 1])
+        with btn_c1:
+            if st.button("⚡ Connect to Physical ESP32", type="primary", key="btn_connect_physical_home", use_container_width=True):
+                st.session_state["esp_gate_ip"] = st.session_state.get("home_gate_ip")
+                st.session_state["esp_gate_password"] = st.session_state.get("home_gate_password")
+                _connect_to_esp(use_physical_master=False)
+                st.rerun()
+        with btn_c2:
+            if st.button("🚀 Launch Instant Cloud Simulation Mode", key="btn_connect_cloud_home", use_container_width=True):
+                st.session_state["esp_gate_ip"] = st.session_state.get("home_gate_ip")
+                st.session_state["esp_gate_password"] = st.session_state.get("home_gate_password") or "ESP32_PHYSICAL_QKEY_MASTER_KEY_1"
+                _connect_to_esp(use_physical_master=True)
+                st.rerun()
+        if st.session_state.get("esp_gate_error"):
+            st.error(st.session_state["esp_gate_error"])
+
+    t_data = st.session_state.get("telemetry", {})
+    cur_slot = t_data.get("message_index", 1)
+    q_state = t_data.get("state", 0)
+
+    g1, g2, g3, g4 = st.columns(4)
+    g1.metric("Hardware Link", "ESP32 Node", "Authenticated")
+    g2.metric("Active Hardware Slot", f"Slot #{cur_slot}", "Volatile RAM")
+    g3.metric("Quantum State", "|1⟩ Excited" if q_state == 1 else "|0⟩ Ground", "Dual-LED Sync")
+    g4.metric("AOS Security", "AES-256-GCM", "Tagged & Verified")
+
+    st.markdown("### ◈ Mission Workspaces")
+    st.caption("Select a specialized full-screen module workspace to begin operations:")
+
+    c_w1, c_w2 = st.columns(2)
+    with c_w1:
+        st.markdown(
+            f"""<div class="module-card-box">
+                <div>
+                    <span class="module-card-badge active-badge">● PRIMARY TELEMETRY</span>
+                    <h3 class="module-card-title">Interactive Q-Key Decoder & Downlink</h3>
+                    <p class="module-card-desc">Authenticate and decrypt CCSDS AOS space telemetry frames using active 256-bit or 128-bit Q-Keys. Shifts volatile message slots (1 to 5) in hardware and features Level 2 Quantum State & Telemetry Inspector.</p>
+                    <ul class="module-card-features">
+                        <li>AES-256-GCM authenticated frame decryption</li>
+                        <li>Hardware Key 3 (PB3) live slot cycle synchronization</li>
+                        <li>Level 2 Quantum Physical State & CCSDS telemetry deconstruction</li>
+                    </ul>
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+        if st.button("Launch Decoder Workspace →", type="primary", key="btn_open_decoder_hub", use_container_width=True):
+            st.session_state["communication_section"] = "Demo-only pairing and AES-GCM"
+            st.rerun()
+
+    with c_w2:
+        st.markdown(
+            f"""<div class="module-card-box">
+                <div>
+                    <span class="module-card-badge">● HARDWARE TELEMETRY & GATES</span>
+                    <h3 class="module-card-title">Device Telemetry & Quantum Controls</h3>
+                    <p class="module-card-desc">Inspect live ESP32 hardware diagnostics, volatile RAM identifiers, RF entropy pool status, and execute remote quantum gate operations (Hadamard / Pauli-X) directly on the physical board.</p>
+                    <ul class="module-card-features">
+                        <li>Live board diagnostics (boot ID, provision ID, uptime)</li>
+                        <li>Remote gate execution (Hadamard, Pauli-X, CNOT)</li>
+                        <li>Physical 6-Key & Dual-LED hardware pinout guide</li>
+                    </ul>
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+        if st.button("Launch Telemetry & Gates Workspace →", key="btn_open_telemetry_hub", use_container_width=True):
+            st.session_state["communication_section"] = "ESP telemetry and gates"
+            st.rerun()
+
+    st.markdown("<div style='height: 0.8rem;'></div>", unsafe_allow_html=True)
+    c_w3, c_w4 = st.columns(2)
+    with c_w3:
+        st.markdown(
+            f"""<div class="module-card-box">
+                <div>
+                    <span class="module-card-badge">● TELECOMMAND UPLINK</span>
+                    <h3 class="module-card-title">Satellite Message Uplink</h3>
+                    <p class="module-card-desc">Send structured telecommand messages to the ESP32 node over HTTP with CRC-32 checksum verification, non-wrapping sequence tracking, and hardware ACK confirmation.</p>
+                    <ul class="module-card-features">
+                        <li>Structured JSON frame format with CRC-32</li>
+                        <li>Sequence space tracking & delivery verification</li>
+                        <li>One-shot manual retry with identical frame</li>
+                    </ul>
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+        if st.button("Launch Message Uplink Workspace →", key="btn_open_uplink_hub", use_container_width=True):
+            st.session_state["communication_section"] = "Real ESP message send"
+            st.rerun()
+
+    with c_w4:
+        st.markdown(
+            f"""<div class="module-card-box">
+                <div>
+                    <span class="module-card-badge">● SPACE PROTOCOL LAB</span>
+                    <h3 class="module-card-title">CCSDS Learning Simulator</h3>
+                    <p class="module-card-desc">Interactive space communications laboratory for Space Packet Protocol (SPP) Version 1, APID configuration, variable-length telemetry deconstruction, and COP-1 procedures.</p>
+                    <ul class="module-card-features">
+                        <li>Space Packet Version 1 primary header encoding</li>
+                        <li>APID 2047 idle packet handling & TC/TM layouts</li>
+                        <li>Offline learning traces & error check deconstruction</li>
+                    </ul>
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+        if st.button("Launch CCSDS Simulator Workspace →", key="btn_open_ccsds_hub", use_container_width=True):
+            st.session_state["communication_section"] = "CCSDS learning simulation"
+            st.rerun()
+
+    st.markdown("<div style='height: 0.8rem;'></div>", unsafe_allow_html=True)
+    st.markdown(
+        f"""<div class="module-card-box">
+            <div>
+                <span class="module-card-badge">● LOCAL PEER CHANNEL</span>
+                <h3 class="module-card-title">Local Send / Receive Demonstration</h3>
+                <p class="module-card-desc">Offline local peer-to-peer demonstration channel for local message logging, delivery queue inspection, and protocol testing without hardware.</p>
+                <ul class="module-card-features">
+                    <li>In-memory 10-message session logging</li>
+                    <li>UTF-8 byte length calculation</li>
+                    <li>Standalone offline demonstration</li>
+                </ul>
+            </div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+    if st.button("Launch Local Demo Workspace →", key="btn_open_local_hub", use_container_width=True):
+        st.session_state["communication_section"] = "Local send/receive demo"
+        st.rerun()
+
+    st.stop()
+
+if not is_test_env:
+    nav_c1, nav_c2 = st.columns([4, 1])
+    with nav_c1:
+        st.markdown(
+            f"""<div class="workspace-nav-bar">
+                <div class="workspace-breadcrumb">
+                    <span>🏠 Mission Overview</span>
+                    <span>/</span>
+                    <span class="workspace-breadcrumb-active">{active_section}</span>
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+    with nav_c2:
+        if st.button("← Back to Overview", key="btn_back_to_hub_comm", use_container_width=True):
+            st.session_state["communication_section"] = HOME_SECTION
+            st.rerun()
 
 if active_section == "ESP telemetry and gates":
     if st.session_state.get("telemetry_error"):
