@@ -59,22 +59,30 @@ button[data-testid="stBaseButton-headerNoPadding"] [data-testid="stIconMaterial"
     line-height: 0 !important;
 }
 
-/* Prevent any sidebar collapse ligature text leaking */
-[data-testid="collapsedControl"] button span,
-button[data-testid="stSidebarCollapseButton"] span,
-button[data-testid="stBaseButton-headerNoPadding"] span {
+/* Completely eradicate any sidebar collapse ligature text leaking */
+[data-testid="collapsedControl"],
+[data-testid="collapsedControl"] *,
+[data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebarCollapseButton"] *,
+button[kind="headerNoPadding"],
+button[kind="headerNoPadding"] *,
+[data-testid="stBaseButton-headerNoPadding"],
+[data-testid="stBaseButton-headerNoPadding"] * {
     font-size: 0 !important;
     line-height: 0 !important;
     color: transparent !important;
-    display: none !important;
 }
 [data-testid="collapsedControl"] button::before,
-button[data-testid="stSidebarCollapseButton"]::before,
-button[data-testid="stBaseButton-headerNoPadding"]::before {
+[data-testid="collapsedControl"]::before,
+[data-testid="stSidebarCollapseButton"]::before,
+button[kind="headerNoPadding"]::before,
+[data-testid="stBaseButton-headerNoPadding"]::before {
     content: "☰" !important;
-    font-size: 16px !important;
+    font-size: 18px !important;
     line-height: 1 !important;
     color: #475569 !important;
+    visibility: visible !important;
+    display: inline-block !important;
 }
 
 [data-testid="stMainBlockContainer"] {
