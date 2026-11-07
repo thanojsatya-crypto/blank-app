@@ -423,7 +423,7 @@ def render_page_kicker(section: str, status: str = "LOCAL TEACHING DEMO") -> Non
     )
 
 
-def render_animated_node_banner(user_name: str = "Quantum_Node_Master", api_token: str = "3F4G3DS84ZLA0sE5ePHtJ0Ejjws_6Cwn2XALF5v4Y41n6wzNK", status: str = "LIVE ONLINE") -> None:
+def render_animated_node_banner(user_name: str = "Quantum_Node_Master", api_token: str = "http://192.168.1.42", status: str = "LIVE ONLINE") -> None:
     """Render a responsive animated quantum node connection banner with pulsing radar & signal waves."""
     st.markdown(
         f"""<div class="quantum-node-card">
@@ -438,7 +438,7 @@ def render_animated_node_banner(user_name: str = "Quantum_Node_Master", api_toke
                         <span class="quantum-status-pill">● {status}</span>
                     </div>
                     <div class="quantum-token-badge">
-                        <span>URL API:</span>
+                        <span>ESP Endpoint:</span>
                         <span class="quantum-token-code">{api_token}</span>
                     </div>
                 </div>
