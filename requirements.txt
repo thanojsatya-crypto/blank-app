@@ -1,0 +1,5 @@
+streamlit>=1.40,<2
+qiskit>=1.2,<3
+qiskit-aer>=0.15,<1
+cryptography>=42,<46
+requests>=2.32,<3
