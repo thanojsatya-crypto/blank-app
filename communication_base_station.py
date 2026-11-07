@@ -976,7 +976,15 @@ if active_section == "Demo-only pairing and AES-GCM":
             if st.session_state.get("telemetry") and "message_index" in st.session_state["telemetry"]:
                 cur_slot = st.session_state["telemetry"]["message_index"]
                 st.session_state["active_comm_slot"] = cur_slot
-            st.markdown(f"**Hardware Shift Status:** ESP32 Key 3 (PB3 / GPIO 21) Active Slot: **`Slot #{cur_slot}`** (1..5 Shifting)")
+            
+            c_slot_txt, c_slot_sync = st.columns([3, 1])
+            with c_slot_txt:
+                st.markdown(f"**Hardware Shift Status:** ESP32 Key 3 (PB3 / GPIO 21) Active Slot: **`Slot #{cur_slot}`** (1..5 Shifting)")
+            with c_slot_sync:
+                def _sync_hardware_slot():
+                    _refresh_esp_downlink()
+                st.button("📡 Sync Hardware Slot", on_click=_sync_hardware_slot, key="btn_sync_hardware_slot_top", use_container_width=True)
+            
             s_cols = st.columns(5)
             for s_i in range(1, 6):
                 is_active_s = (s_i == cur_slot)
@@ -1056,20 +1064,44 @@ if active_section == "Demo-only pairing and AES-GCM":
 
     def _refresh_esp_downlink():
         origin = st.session_state.get("esp_base_origin")
-        saved_pass = None
-        try:
-            cache_file = os.path.join(os.path.dirname(__file__), "latest_provision.json")
-            if os.path.exists(cache_file):
-                with open(cache_file, "r", encoding="utf-8") as f:
-                    saved_pass = json.load(f).get("password")
-        except Exception:
-            pass
+        saved_pass = st.session_state.get("esp_gate_password")
+        if not saved_pass:
+            try:
+                cache_file = os.path.join(os.path.dirname(__file__), "latest_provision.json")
+                if os.path.exists(cache_file):
+                    with open(cache_file, "r", encoding="utf-8") as f:
+                        saved_pass = json.load(f).get("password")
+            except Exception:
+                pass
+
+        if origin:
+            try:
+                import urllib.request
+                with urllib.request.urlopen(origin + "/api/qkey", timeout=2) as rq:
+                    q_data = json.loads(rq.read().decode())
+                    if q_data.get("pairing_password"):
+                        saved_pass = q_data["pairing_password"]
+                        st.session_state["esp_gate_password"] = saved_pass
+                    if q_data.get("qkey_hex"):
+                        st.session_state["esp_latest_key_bytes"] = bytes.fromhex(q_data["qkey_hex"])
+            except Exception:
+                pass
+
         if origin and saved_pass:
             try:
+                try:
+                    t_client = EspApiClient(origin)
+                    st.session_state["telemetry"] = t_client.get_telemetry()
+                except Exception:
+                    pass
+
                 refreshed = AOSKeyTransferAdapter().fetch_downlink(origin, saved_pass)
                 st.session_state["base_demo_downlink"] = _verify_gate_downlink(refreshed)
                 st.session_state["esp_latest_frame"] = refreshed.frame
                 st.session_state["esp_latest_key_bytes"] = refreshed.key_bytes
+                cur_m_idx = st.session_state.get("telemetry", {}).get("message_index", 1)
+                st.session_state["active_comm_slot"] = cur_m_idx
+                st.success(f"🔄 Synced with ESP32! Live Slot: Slot #{cur_m_idx}")
             except Exception as e:
                 st.error(f"Could not refresh from ESP: {e}")
 
@@ -1130,6 +1162,41 @@ if active_section == "Demo-only pairing and AES-GCM":
                             unsafe_allow_html=True,
                         )
                         st.caption(f"Raw decrypted Data Field (hex): `{custom_ver.plaintext.hex()}`")
+                        
+                        st.markdown("---")
+                        st.markdown("### 🔬 Level 2: Real Quantum & Space Telemetry Inspector")
+                        st.caption("Second-level educational verification: Quantum state vector from ESP32 + CCSDS AOS Frame Structure")
+                        tele = st.session_state.get("telemetry", {})
+                        q_state = tele.get("state", 0)
+                        q_chain = tele.get("chain", [])
+                        q_sim = tele.get("simulation", {})
+                        q_probs = q_sim.get("final_state", {}).get("probabilities", [])
+
+                        l2_col1, l2_col2 = st.columns(2)
+                        with l2_col1:
+                            st.markdown("#### ⚛️ Live ESP32 Quantum State")
+                            state_label = "|1⟩ (Excited)" if q_state == 1 else "|0⟩ (Ground / Superposition)"
+                            st.info(f"**Observed Physical State:** `{state_label}`")
+                            if q_chain:
+                                st.write(f"**Applied Quantum Gates:** {', '.join([str(g.get('gate', '')) for g in q_chain])}")
+                            if q_probs:
+                                st.write("**Basis Probabilities:**")
+                                for p in q_probs:
+                                    basis_str = f"|{p.get('basis', 0)}⟩"
+                                    val = p.get('value', 0) * 100
+                                    st.progress(min(1.0, max(0.0, float(p.get('value', 0)))), text=f"{basis_str}: {val:.1f}%")
+
+                        with l2_col2:
+                            st.markdown("#### 🛰️ CCSDS AOS Space Frame Structure")
+                            st.caption("CCSDS 355.0-B-2 AOS Frame Breakdown")
+                            st.code(
+                                f"Primary Header  : {curr_frame.primary_header_hex} (Version 2, SCID 0x052, VCID 1)\n"
+                                f"Security Header : {curr_frame.security_header_hex} (SPI 0x1234, 96-bit Nonce)\n"
+                                f"GCM Tag (16B)   : {curr_frame.tag_hex}\n"
+                                f"Ciphertext (32B): {curr_frame.ciphertext_hex}\n"
+                                f"Plaintext (Data): {custom_ver.plaintext.hex()}",
+                                language="text"
+                            )
                     else:
                         armed_key = st.session_state.get("esp_latest_key_bytes")
                         if not armed_key:
