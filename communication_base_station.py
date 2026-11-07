@@ -1075,6 +1075,11 @@ if active_section == "Demo-only pairing and AES-GCM":
 
     st.button("🔄 Refresh Encrypted Message from ESP32", on_click=_refresh_esp_downlink, use_container_width=True)
 
+    if st.session_state.get("esp_bridge_mode", False):
+        curr_k = st.session_state.get("esp_latest_key_bytes")
+        if curr_k:
+            st.info(f"☁️ **Cloud Demo Mode Active**: The active Q-Key armed in this cloud frame is:\n`{curr_k.hex()}`\n\n*(Copy and paste this key below to decode)*")
+
     entered_key_hex = st.text_input(
         "Q-Key (128-bit: 32 Hex characters, or 256-bit: 64 Hex characters):",
         key="user_manual_qkey_input",
@@ -1177,15 +1182,57 @@ if active_section == "Demo-only pairing and AES-GCM":
 
                         if not matched_full:
                             st.error("❌ **DECRYPTION FAILED!**")
-                            if armed_key and len(armed_key) == 32 and len(candidate_bytes) == 16:
-                                st.caption(
-                                    f"AES-GCM tag mismatch. The entered 128-bit key does not match the key armed in the ESP32. "
-                                    f"Please copy and paste the active 256-bit Q-Key from Key Generator:\n`{armed_key.hex()}`"
+                            if armed_key:
+                                st.warning(
+                                    f"🔑 **The active armed Q-Key for this session is:**\n"
+                                    f"```\n{armed_key.hex()}\n```\n"
+                                    f"*(The key you entered does not match the key that armed this specific frame)*"
                                 )
+                                if st.session_state.get("esp_bridge_mode", False):
+                                    st.info(
+                                        "☁️ **Why is the key different?** You are on **Streamlit Cloud** (`https://blank-app-v5q3ka8a3g.streamlit.app`). "
+                                        "Public cloud servers cannot reach local IP addresses (`192.168.1.12`) on your private home Wi-Fi, "
+                                        "so this cloud session generated a simulated teaching frame.\n\n"
+                                        "👉 **Two easy ways to make it work:**\n"
+                                        "1. **Switch to Tab 2 in your browser (`http://localhost:8502`)**: Your local Base Station connects directly to your local Key Generator!\n"
+                                        "2. Or click the button below to arm this Cloud frame with your entered key:"
+                                    )
+                                    if st.button(f"🔄 Arm Cloud Frame with My Entered Key ({entered_key_hex[:12]}...)", key="btn_rearm_with_entered_key"):
+                                        try:
+                                            rearm_k = candidate_bytes if len(candidate_bytes) in (16, 32) else bytes(32)
+                                            r_iv = bytes.fromhex("00112233445566778899aabb")
+                                            r_aad = build_baseline_aad(AOS_PRIMARY_HEADER, AOS_SPI)
+                                            r_sealed = AESGCM(rearm_k).encrypt(r_iv, encode_aos_message_field("Quantum Ground Station Linked"), r_aad)
+                                            r_sec = AOS_SPI.to_bytes(2, "big") + r_iv
+                                            r_chex = r_sealed[:-16].hex()
+                                            r_thex = r_sealed[-16:].hex()
+                                            r_fhex = AOS_PRIMARY_HEADER.hex() + r_sec.hex() + r_chex + r_thex
+                                            r_frame = EncryptedAosFrame(
+                                                primary_header_hex=AOS_PRIMARY_HEADER.hex(),
+                                                security_header_hex=r_sec.hex(),
+                                                ciphertext_hex=r_chex,
+                                                tag_hex=r_thex,
+                                                frame_hex=r_fhex,
+                                                aad_hex=r_aad.hex(),
+                                            )
+                                            st.session_state["esp_latest_frame"] = r_frame
+                                            st.session_state["esp_latest_key_bytes"] = rearm_k
+                                            st.session_state["base_demo_downlink"] = _verify_gate_downlink(
+                                                AOSDownlinkResponse(
+                                                    frame=r_frame,
+                                                    boot_id="0123456789abcdef0123456789abcdef",
+                                                    provision_id="11111111111111111111111111111111",
+                                                    key_bytes=rearm_k,
+                                                )
+                                            )
+                                            st.success("Frame re-armed with your key! Click 'Decode & Verify Message with Key' again.")
+                                            st.rerun()
+                                        except Exception as rearm_err:
+                                            st.error(f"Could not re-arm frame: {rearm_err}")
                             else:
                                 st.caption(
-                                    f"AES-GCM tag mismatch. The entered key does not match the key armed in the ESP32. "
-                                    f"Please copy and paste the active 256-bit Q-Key from Key Generator."
+                                    "AES-GCM tag mismatch. The entered key does not match the key armed in the ESP32. "
+                                    "Please copy and paste the active 256-bit Q-Key from Key Generator."
                                 )
 
     st.info(
