@@ -1125,11 +1125,67 @@ if active_section == "Demo-only pairing and AES-GCM":
                         )
                         st.caption(f"Raw decrypted Data Field (hex): `{custom_ver.plaintext.hex()}`")
                     else:
-                        st.error("❌ **DECRYPTION FAILED!**")
-                        st.caption(
-                            f"AES-GCM tag mismatch. The entered key does not match the key armed in the ESP32. "
-                            f"Please copy and paste the active 256-bit Q-Key from Key Generator."
-                        )
+                        armed_key = st.session_state.get("esp_latest_key_bytes")
+                        if not armed_key:
+                            try:
+                                cache_file = os.path.join(os.path.dirname(__file__), "latest_provision.json")
+                                if os.path.exists(cache_file):
+                                    with open(cache_file, "r", encoding="utf-8") as f:
+                                        p_hex = json.load(f).get("qkey_hex", "")
+                                        if p_hex:
+                                            armed_key = bytes.fromhex(p_hex)
+                            except Exception:
+                                pass
+
+                        matched_full = False
+                        if armed_key and len(armed_key) == 32 and armed_key.startswith(candidate_bytes):
+                            full_ver = verify_firmware_telemetry(
+                                {
+                                    "primary_header_hex": curr_frame.primary_header_hex,
+                                    "security_header_hex": curr_frame.security_header_hex,
+                                    "ciphertext_hex": curr_frame.ciphertext_hex,
+                                    "tag_hex": curr_frame.tag_hex,
+                                    "frame_hex": curr_frame.frame_hex,
+                                },
+                                armed_key,
+                            )
+                            if full_ver.tag_verified and full_ver.fixture_valid and full_ver.message_text:
+                                matched_full = True
+                                st.success("✅ **DECRYPTION SUCCESSFUL! TAG VERIFIED!**")
+                                st.info(
+                                    f"💡 **Key Prefix Matched**: You entered a 128-bit key (32 hex characters) which matches the first half of the active 256-bit Q-Key!\n\n"
+                                    f"The ESP encrypted this frame with **AES-256-GCM**, decrypted successfully using the complete 256-bit key:\n"
+                                    f"`{armed_key.hex()}`"
+                                )
+                                st.markdown(
+                                    f"""<div style="background: linear-gradient(135deg, #064e3b 0%, #022c22 100%); border: 1px solid #10b981; border-radius: 14px; padding: 1.2rem; box-shadow: 0 0 24px rgba(16, 185, 129, 0.25); animation: fadeIn 0.4s ease-out; margin: 0.8rem 0;">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; color: #6ee7b7; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">
+                                            <span>📬 DECODED MESSAGE FROM ESP32</span>
+                                            <span style="background: #047857; color: #a7f3d0; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.65rem;">KEY MATCHED</span>
+                                        </div>
+                                        <div style="color: #ffffff; font-size: 1.45rem; font-weight: 800; margin: 0.6rem 0 0.3rem; font-family: Inter, sans-serif;">
+                                            {full_ver.message_text}
+                                        </div>
+                                        <div style="color: #a7f3d0; font-size: 0.78rem;">
+                                            AES-256-GCM authenticated ciphertext decrypted successfully
+                                        </div>
+                                    </div>""",
+                                    unsafe_allow_html=True,
+                                )
+                                st.caption(f"Raw decrypted Data Field (hex): `{full_ver.plaintext.hex()}`")
+
+                        if not matched_full:
+                            st.error("❌ **DECRYPTION FAILED!**")
+                            if armed_key and len(armed_key) == 32 and len(candidate_bytes) == 16:
+                                st.caption(
+                                    f"AES-GCM tag mismatch. The entered 128-bit key does not match the key armed in the ESP32. "
+                                    f"Please copy and paste the active 256-bit Q-Key from Key Generator:\n`{armed_key.hex()}`"
+                                )
+                            else:
+                                st.caption(
+                                    f"AES-GCM tag mismatch. The entered key does not match the key armed in the ESP32. "
+                                    f"Please copy and paste the active 256-bit Q-Key from Key Generator."
+                                )
 
     st.info(
         "The selected frame uses header `69521234564a`, SPI `0x1234`, 96-bit ESP nonce, "
