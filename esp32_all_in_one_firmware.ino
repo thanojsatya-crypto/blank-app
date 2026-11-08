@@ -63,7 +63,7 @@ static constexpr uint8_t PB6_RESET_PIN = 27;  // INPUT_PULLUP; connect switch be
 static constexpr uint8_t LED_ACTIVE_LEVEL = HIGH;
 static constexpr uint8_t LED_IDLE_LEVEL = LOW;
 
-static constexpr uint32_t DEBOUNCE_MS = 35;
+static constexpr uint32_t DEBOUNCE_MS = 25;
 static constexpr size_t MAX_CHAIN_GATES = 64;
 static constexpr size_t MAX_MESSAGE_BODY_BYTES = 1024;
 static constexpr size_t MAX_MESSAGE_TEXT_BYTES = 256;
@@ -220,12 +220,14 @@ inline void blinkWorkState1() {
   digitalWrite(EXTERNAL_LED_PIN, LED_ACTIVE_LEVEL); // State |1> = LED ON
 }
 
-// Light 2: Key 3 Press (Message Slot Cycle 1..5): External LED blinks `slot` times then returns to state level
+// Light 2: Key 3 Press (Message Slot Cycle 1..5): Dual LEDs blink `slot` times then return to state level
 inline void blinkWorkSlotCycle(uint8_t slot) {
   uint8_t currentLevel = (displayState == 1) ? LED_ACTIVE_LEVEL : LED_IDLE_LEVEL;
   for (uint8_t i = 0; i < slot; ++i) {
-    digitalWrite(EXTERNAL_LED_PIN, LED_ACTIVE_LEVEL);
+    digitalWrite(STATUS_LED_PIN, LED_ACTIVE_LEVEL);   // Onboard Blue LED (GPIO 2)
+    digitalWrite(EXTERNAL_LED_PIN, LED_ACTIVE_LEVEL); // External LED (GPIO 4)
     delay(90);
+    digitalWrite(STATUS_LED_PIN, LED_IDLE_LEVEL);
     digitalWrite(EXTERNAL_LED_PIN, LED_IDLE_LEVEL);
     if (i < slot - 1) delay(80);
   }
@@ -1551,6 +1553,28 @@ void setup() {
 void loop() {
   server.handleClient();
   pollButtons();
+  if (Serial.available() > 0) {
+    char ch = Serial.read();
+    if (ch == '3' || ch == 's' || ch == 'S') {
+      Serial.println("[SERIAL] '3' received -> Cycling message slot 1..5");
+      handleButtonPress(2);
+    } else if (ch == '1' || ch == 'h' || ch == 'H') {
+      Serial.println("[SERIAL] '1' received -> H gate");
+      handleButtonPress(0);
+    } else if (ch == '2' || ch == 'x' || ch == 'X') {
+      Serial.println("[SERIAL] '2' received -> X gate");
+      handleButtonPress(1);
+    } else if (ch == '4' || ch == 'q' || ch == 'Q') {
+      Serial.println("[SERIAL] '4' received -> TRNG Q-Key gen");
+      handleButtonPress(3);
+    } else if (ch == '5' || ch == 'd' || ch == 'D') {
+      Serial.println("[SERIAL] '5' received -> Mode toggle");
+      handleButtonPress(4);
+    } else if (ch == '6' || ch == 'r' || ch == 'R') {
+      Serial.println("[SERIAL] '6' received -> Reset |0>");
+      handleButtonPress(5);
+    }
+  }
   updateLedState();
   delay(1);
 }

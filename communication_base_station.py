@@ -1218,6 +1218,20 @@ if active_section == "Demo-only pairing and AES-GCM":
         "password, then returned the encrypted frame and matching key. The app verifies AES-256-GCM locally before showing plaintext; "
         "the pairing password and key are not retained or displayed."
     )
+    origin = st.session_state.get("esp_base_origin")
+    if origin and not st.session_state.get("esp_bridge_mode", False):
+        try:
+            import urllib.request
+            with urllib.request.urlopen(f"{origin}/api/telemetry", timeout=1.0) as resp:
+                live_tele = json.loads(resp.read().decode())
+                live_slot = live_tele.get("message_index")
+                if live_slot and live_slot != st.session_state.get("active_comm_slot"):
+                    st.session_state["active_comm_slot"] = live_slot
+                    st.session_state["telemetry"] = live_tele
+                    _refresh_esp_downlink()
+        except Exception:
+            pass
+
     downlink = st.session_state.get("base_demo_downlink")
     if isinstance(downlink, AOSDownlinkVerification):
         st.subheader("Authenticated AOS downlink frame")
@@ -1367,17 +1381,26 @@ if active_section == "Demo-only pairing and AES-GCM":
         if origin and saved_pass:
             try:
                 try:
-                    t_client = EspApiClient(origin)
-                    st.session_state["telemetry"] = t_client.get_telemetry()
+                    import urllib.request
+                    with urllib.request.urlopen(origin + "/api/telemetry", timeout=1.5) as trq:
+                        t_data = json.loads(trq.read().decode())
+                        st.session_state["telemetry"] = t_data
+                        if "message_index" in t_data:
+                            st.session_state["active_comm_slot"] = t_data["message_index"]
                 except Exception:
-                    pass
+                    try:
+                        t_client = EspApiClient(origin)
+                        st.session_state["telemetry"] = t_client.get_telemetry()
+                        cur_m_idx = st.session_state.get("telemetry", {}).get("message_index", 1)
+                        st.session_state["active_comm_slot"] = cur_m_idx
+                    except Exception:
+                        pass
 
                 refreshed = AOSKeyTransferAdapter().fetch_downlink(origin, saved_pass)
                 st.session_state["base_demo_downlink"] = _verify_gate_downlink(refreshed)
                 st.session_state["esp_latest_frame"] = refreshed.frame
                 st.session_state["esp_latest_key_bytes"] = refreshed.key_bytes
-                cur_m_idx = st.session_state.get("telemetry", {}).get("message_index", 1)
-                st.session_state["active_comm_slot"] = cur_m_idx
+                cur_m_idx = st.session_state.get("active_comm_slot", 1)
                 st.success(f"🔄 Synced with ESP32! Live Slot: Slot #{cur_m_idx}")
             except Exception as e:
                 st.error(f"Could not refresh from ESP: {e}")
@@ -1418,7 +1441,15 @@ if active_section == "Demo-only pairing and AES-GCM":
                 st.session_state["user_manual_qkey_input"] = active_key.hex()
             st.button("🔑 Auto-Fill Q-Key", on_click=_fill_active_qkey_field, key="btn_autofill_qkey_field", use_container_width=True)
 
-    if st.button("🔓 Decode & Verify Message with Key", type="primary", key="btn_decode_with_key"):
+    def _decode_click_action():
+        k_str = st.session_state.get("user_manual_qkey_input", "").strip()
+        if not k_str and active_key:
+            st.session_state["user_manual_qkey_input"] = active_key.hex()
+        origin_val = st.session_state.get("esp_base_origin")
+        if origin_val and not st.session_state.get("esp_bridge_mode", False):
+            _refresh_esp_downlink()
+
+    if st.button("🔓 Decode & Verify Message with Key", type="primary", key="btn_decode_with_key", on_click=_decode_click_action):
         if not entered_key_hex and active_key:
             entered_key_hex = active_key.hex()
             st.session_state["user_manual_qkey_input"] = entered_key_hex
@@ -1435,7 +1466,7 @@ if active_section == "Demo-only pairing and AES-GCM":
             except ValueError:
                 st.error("Invalid hexadecimal characters in key.")
             else:
-                curr_frame = downlink.frame if isinstance(downlink, AOSDownlinkVerification) else st.session_state.get("esp_latest_frame")
+                curr_frame = st.session_state.get("esp_latest_frame") or (downlink.frame if isinstance(downlink, AOSDownlinkVerification) else None)
                 if curr_frame:
                     custom_ver = verify_firmware_telemetry(
                         {
